@@ -14,11 +14,14 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
 } catch (PDOException $e) {
+    // Detail teknis (host/user DB) hanya ke log server, bukan ke klien.
+    error_log('[db] Koneksi database gagal: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: application/json');
+    header('X-Content-Type-Options: nosniff');
     echo json_encode([
         'success' => false,
-        'error' => 'Koneksi database KlinikFlow gagal: ' . $e->getMessage()
+        'error' => 'Layanan sedang tidak tersedia'
     ]);
     exit;
 }

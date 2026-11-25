@@ -2,14 +2,24 @@ import { extractAuthUser } from './auth';
 
 const PHP_API_BASE = process.env.PHP_API_URL || 'http://php-api';
 
+/** Skrip PHP yang boleh dipanggil — mencegah path injection ke skrip lain. */
+const ALLOWED_SCRIPTS = new Set(['export_report.php', 'reports.php', 'claims.php', 'attachments.php']);
+
 export async function proxyToPhp(
   req: Request,
   targetScript: string,
   actionOverride?: string,
   extraParams?: Record<string, string>
 ): Promise<Response> {
+  if (!ALLOWED_SCRIPTS.has(targetScript)) {
+    return Response.json({ success: false, error: 'Target layanan tidak dikenal' }, { status: 400 });
+  }
+
   const url = new URL(req.url);
   const user = extractAuthUser(req);
+  if (!user) {
+    return Response.json({ success: false, error: 'Sesi tidak valid atau telah berakhir' }, { status: 401 });
+  }
 
   const targetUrl = new URL(`${PHP_API_BASE}/${targetScript}`);
   url.searchParams.forEach((val, key) => {
@@ -29,10 +39,11 @@ export async function proxyToPhp(
   const headers = new Headers();
   headers.set('Content-Type', req.headers.get('Content-Type') || 'application/json');
 
-  if (user) {
-    headers.set('X-User-Id', String(user.id));
-    headers.set('X-User-Role', user.role);
-    headers.set('X-Clinic-Id', String(user.clinic_id));
+  // PERBAIKAN: teruskan JWT asli; php-api memverifikasi tanda tangannya sendiri.
+  // Header X-User-Id/X-User-Role/X-Clinic-Id tidak lagi dikirim karena bisa dipalsukan.
+  const authHeader = req.headers.get('Authorization');
+  if (authHeader) {
+    headers.set('Authorization', authHeader);
   }
 
   const method = req.method;

@@ -3,6 +3,10 @@
 > ⚠️ **LOCAL SECURITY TRAINING LAB — DATA DUMMY**  
 > Aplikasi ini dibangun khusus untuk latihan pemecahan masalah dan pengujian secure coding dalam lingkungan lokal Docker yang terisolasi. Seluruh catatan kunjungan, tarif layanan, identitas pasien, dan data klaim bersifat sintetis dan fiktif (bukan data medis riil). Dilarang keras mendeploy aplikasi ini ke internet atau lingkungan produksi.
 
+> 🔐 **Dokumen keamanan**: hasil analisis dan perbaikan ada di
+> [`docs/threat-model.md`](docs/threat-model.md), [`docs/findings.md`](docs/findings.md),
+> `docs/fixes/`, dan skrip reproduksi di [`security/poc/`](security/poc/README.md).
+
 ---
 
 ## Ringkasan Aplikasi
@@ -38,19 +42,26 @@ Aplikasi dirancang sebagai monorepo multi-service:
    cd KlinikFlow
    ```
 
-2. Bangun dan jalankan seluruh container:
+2. Siapkan konfigurasi (rahasia tidak lagi hardcoded di repo):
+   ```bash
+   cp .env.example .env
+   # isi MYSQL_ROOT_PASSWORD, MYSQL_PASSWORD, JWT_SECRET (openssl rand -hex 32)
+   ```
+
+3. Bangun dan jalankan seluruh container:
    ```bash
    docker compose up -d --build
    ```
 
-3. Periksa status kesiapan seluruh layanan:
+4. Periksa status kesiapan seluruh layanan:
    ```bash
    docker compose ps
    ```
 
-4. Buka aplikasi di peramban web:
+5. Buka aplikasi di peramban web:
    - **Aplikasi Web**: [http://localhost:8080](http://localhost:8080)
-   - **API Gateway (Bun)**: [http://localhost:3000](http://localhost:3000) (juga dapat diakses via reverse proxy di `http://localhost:8080/api`)
+   - API hanya diekspos lewat nginx: `http://localhost:8080/api`
+     (port `3000` gateway tidak lagi dipublish ke host)
 
 ---
 

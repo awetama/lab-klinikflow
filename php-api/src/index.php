@@ -1,11 +1,16 @@
 <?php
 // KlinikFlow - PHP Legacy API Router
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-User-Id, X-User-Role, X-Clinic-Id');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+//
+// Layanan ini hanya dipanggil oleh gateway (bun-api) di jaringan internal Docker.
+// Karena itu CORS tidak lagi dibuka di sini (wildcard '*' dihapus) — respons
+// diteruskan gateway yang sudah memiliki allowlist origin.
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: no-referrer');
+header('Cache-Control: no-store');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+    http_response_code(204);
     exit;
 }
 
@@ -23,8 +28,7 @@ if (str_starts_with($uri, '/reports/export') || str_starts_with($uri, '/export_r
     header('Content-Type: application/json');
     echo json_encode([
         'status' => 'online',
-        'service' => 'KlinikFlow Legacy PHP Service v2.0',
+        'service' => 'KlinikFlow Legacy PHP Service v2.1',
         'timestamp' => date('c')
     ]);
 }
-

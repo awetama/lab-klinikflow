@@ -46,7 +46,7 @@
       </div>
 
       <p class="field-hint" style="text-align: center; margin-top: 14px;">
-        Password seragam semua akun lab: <code class="inline-code">password123</code>
+        Kredensial demo mengikuti <code class="inline-code">database/02_seed.sql</code> pada lingkungan lab lokal.
       </p>
     </div>
   </div>
@@ -59,13 +59,13 @@ import { apiFetch, setCurrentUser, setToken } from '../api';
 
 const router = useRouter();
 const email = ref('staf1@klinikflow.local');
-const password = ref('password123');
+const password = ref('');
 const errorMsg = ref('');
 const loading = ref(false);
 
 function fillAccount(accEmail: string) {
   email.value = accEmail;
-  password.value = 'password123';
+  password.value = '';
 }
 
 async function submitLogin() {
