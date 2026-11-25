@@ -39,12 +39,15 @@ $filter = preg_replace('/[^\p{L}\p{N} \-_.@]/u', '', $filterRaw) ?? '';
 $stmt = $pdo->prepare($sql);   // data dari DB, bukan dari string perintah
 ```
 
-Tidak ada lagi `shell_exec`, `exec`, `system`, `passthru`, atau backtick di seluruh `php-api`.
+Tidak ada lagi pemanggilan `shell_exec`, `exec`, `system`, `passthru`, atau backtick di
+seluruh `php-api` — yang tersisa hanya komentar penjelas di `export_report.php`.
 
-**Verifikasi statis**
+**Verifikasi statis** (hanya komentar yang tersisa)
 ```
-$ grep -rnE "shell_exec|exec\(|system\(|passthru|`" php-api/src
-(tidak ada hasil)
+$ grep -rnE "shell_exec|exec\(|system\(|passthru" php-api/src
+php-api/src/export_report.php:7:// PERBAIKAN F-06: ... Tidak ada shell_exec(),
+php-api/src/export_report.php:8:// exec(), system(), atau backtick ...
+php-api/src/export_report.php:9:// Sebelumnya: shell_exec("echo ... " . $filter)
 ```
 
 **Ekspektasi PoC `03_rce_export.sh`**
