@@ -1,0 +1,17 @@
+# Dependensi & artefak build tidak boleh masuk repo (F-20)
+node_modules/
+dist/
+build/
+.vite/
+
+# Rahasia & konfigurasi lokal
+.env
+.env.*
+!.env.example
+
+# Log & berkas sementara
+*.log
+npm-debug.log*
+bun-error.log
+.DS_Store
+coverage/

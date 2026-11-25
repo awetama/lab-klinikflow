@@ -1,25 +1,32 @@
+# KlinikFlow — lab lokal. Semua rahasia diambil dari .env (F-17).
+# Salin dulu: cp .env.example .env  lalu isi nilainya.
 services:
   mysql:
     image: mysql:8.0
     container_name: klinikflow-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root_password_klinikflow
-      MYSQL_DATABASE: klinikflow_db
-      MYSQL_USER: klinikflow_user
-      MYSQL_PASSWORD: klinikflow_pass
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD wajib di-set di .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-klinikflow_db}
+      MYSQL_USER: ${MYSQL_USER:-klinikflow_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD wajib di-set di .env}
     volumes:
       - ./database/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
       - ./database/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+      - ./database/03_audit.sql:/docker-entrypoint-initdb.d/03_audit.sql:ro
       - klinikflow_mysql_data:/var/lib/mysql
     networks:
       - klinikflow-internal
+    # Port MySQL tidak pernah dipublish ke host.
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password_klinikflow"]
+      # $$ = escape Compose supaya variabel dibaca di dalam container.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 10s
+      start_period: 15s
 
   php-api:
     build:
@@ -30,11 +37,14 @@ services:
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
-      DB_NAME: klinikflow_db
-      DB_USER: klinikflow_user
-      DB_PASS: klinikflow_pass
+      DB_NAME: ${MYSQL_DATABASE:-klinikflow_db}
+      DB_USER: ${MYSQL_USER:-klinikflow_user}
+      DB_PASS: ${MYSQL_PASSWORD:?MYSQL_PASSWORD wajib di-set di .env}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET wajib di-set di .env}
     networks:
       - klinikflow-internal
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       mysql:
         condition: service_healthy
@@ -45,19 +55,35 @@ services:
       dockerfile: Dockerfile
     container_name: klinikflow-bun-api
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    # Port 3000 TIDAK dipublish lagi: satu-satunya pintu masuk adalah web/nginx.
+    expose:
+      - "3000"
     environment:
       PORT: "3000"
       DB_HOST: mysql
       DB_PORT: "3306"
-      DB_NAME: klinikflow_db
-      DB_USER: klinikflow_user
-      DB_PASS: klinikflow_pass
+      DB_NAME: ${MYSQL_DATABASE:-klinikflow_db}
+      DB_USER: ${MYSQL_USER:-klinikflow_user}
+      DB_PASS: ${MYSQL_PASSWORD:?MYSQL_PASSWORD wajib di-set di .env}
       PHP_API_URL: http://php-api
-      JWT_SECRET: klinikflow-super-secret-jwt-key-2026
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET wajib di-set di .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      NODE_ENV: production
     networks:
       - klinikflow-internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       mysql:
         condition: service_healthy
@@ -71,11 +97,14 @@ services:
     container_name: klinikflow-web
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "${WEB_PORT:-8080}:80"
     networks:
       - klinikflow-internal
+    security_opt:
+      - no-new-privileges:true
     depends_on:
-      - bun-api
+      bun-api:
+        condition: service_started
 
 networks:
   klinikflow-internal:
@@ -83,4 +112,3 @@ networks:
 
 volumes:
   klinikflow_mysql_data:
-
