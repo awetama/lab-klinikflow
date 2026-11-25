@@ -21,7 +21,7 @@
         </div>
       </div>
 
-      <div v-if="summaryHtml" class="summary-banner" v-html="summaryHtml"></div>
+      <div v-if="summaryText" class="summary-banner">{{ summaryText }}</div>
 
       <div class="card">
         <div v-if="loading" class="state">Memuat laporan transaksi...</div>
@@ -105,7 +105,7 @@ import { apiFetch } from '../api';
 const route = useRoute();
 const reports = ref<any[]>([]);
 const searchFilter = ref((route.query.filter as string) || '');
-const summaryHtml = ref('');
+const summaryText = ref('');
 const loading = ref(true);
 
 const showExportModal = ref(false);
@@ -121,7 +121,7 @@ async function fetchReports() {
     const res = await apiFetch(`/reports${q}`);
     if (res.success) {
       reports.value = res.data;
-      summaryHtml.value = res.summary_html;
+      summaryText.value = res.summary || res.summary_html || '';
     }
   } catch (err) {
     console.error(err);

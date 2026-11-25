@@ -36,7 +36,7 @@
           <tbody>
             <tr v-for="p in patients" :key="p.id">
               <td class="mono nowrap" style="color: var(--primary-700); font-weight: 700;">{{ p.mrn }}</td>
-              <td v-html="p.full_name"></td>
+              <td>{{ p.full_name }}</td>
               <td><span class="badge badge-secondary">{{ p.gender === 'L' ? 'Laki-laki' : 'Perempuan' }}</span></td>
               <td class="nowrap">{{ p.birth_date }}</td>
               <td class="nowrap">{{ p.phone }}</td>
