@@ -1,0 +1,86 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: klinikflow-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_klinikflow
+      MYSQL_DATABASE: klinikflow_db
+      MYSQL_USER: klinikflow_user
+      MYSQL_PASSWORD: klinikflow_pass
+    volumes:
+      - ./database/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+      - klinikflow_mysql_data:/var/lib/mysql
+    networks:
+      - klinikflow-internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password_klinikflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  php-api:
+    build:
+      context: ./php-api
+      dockerfile: Dockerfile
+    container_name: klinikflow-php-api
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: klinikflow_db
+      DB_USER: klinikflow_user
+      DB_PASS: klinikflow_pass
+    networks:
+      - klinikflow-internal
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  bun-api:
+    build:
+      context: ./bun-api
+      dockerfile: Dockerfile
+    container_name: klinikflow-bun-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: klinikflow_db
+      DB_USER: klinikflow_user
+      DB_PASS: klinikflow_pass
+      PHP_API_URL: http://php-api
+      JWT_SECRET: klinikflow-super-secret-jwt-key-2026
+    networks:
+      - klinikflow-internal
+    depends_on:
+      mysql:
+        condition: service_healthy
+      php-api:
+        condition: service_started
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: klinikflow-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - klinikflow-internal
+    depends_on:
+      - bun-api
+
+networks:
+  klinikflow-internal:
+    driver: bridge
+
+volumes:
+  klinikflow_mysql_data:
+
